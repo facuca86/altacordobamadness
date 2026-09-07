@@ -25,11 +25,12 @@
     { "id": "file",        "name": "FILÉ – Lomos & Wraps",                  "type": "restaurant",  "col": 1, "row": 3, "side": "south" },
     { "id": "miski_mikuy", "name": "Miski Mikuy - Sabor a Perú",            "type": "restaurant",  "col": 2, "row": 4, "side": "south" }
   ],
+  "_comment_busstops": "col máximo válido es 3 (5 calles verticales -> 4 columnas de manzana, índice 0..3); las paradas 'sobre Av. Juan B. Justo' usan la columna 3, que es la manzana pegada a esa avenida por el lado este.",
   "busStops": [
     { "col": 3, "row": 1, "street": "Gral. Paz" },
     { "col": 3, "row": 3, "street": "Gral. Paz" },
-    { "col": 4, "row": 2, "street": "Av. Juan B. Justo" },
-    { "col": 4, "row": 4, "street": "Av. Juan B. Justo" }
+    { "col": 3, "row": 2, "street": "Av. Juan B. Justo" },
+    { "col": 3, "row": 4, "street": "Av. Juan B. Justo" }
   ],
   "parkedCars": [
     { "id": "car_autopartes", "col": 3, "row": 1, "side": "north", "color": "#c94b4b", "missionCar": true },

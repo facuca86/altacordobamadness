@@ -7,8 +7,11 @@ POIs) a partir de esos datos; `game.js` es toda la lógica de juego y render.
 
 ## Cómo correrlo
 
-El juego hace `fetch('map-data.json')`, así que necesita servirse por HTTP (no funciona abriendo
-`index.html` directo por `file://` debido a las restricciones CORS del navegador).
+Funciona tanto abriendo `index.html` directo con doble clic (`file://`) como sirviéndolo por HTTP
+o desplegado en **GitHub Pages** (Settings → Pages → branch `main` / raíz). El juego intenta
+`fetch('map-data.json')` primero; si el navegador lo bloquea por CORS (típico al abrir con
+`file://`), cae automáticamente a la copia embebida en `map-data-embedded.js`, así que no hace
+falta levantar un servidor para probarlo. Si preferís servirlo igual:
 
 ```bash
 cd altacordobamadness
@@ -16,7 +19,20 @@ python3 -m http.server 8000
 # abrir http://localhost:8000
 ```
 
-También funciona tal cual desplegado en **GitHub Pages** (Settings → Pages → branch `main` / raíz).
+**Importante:** si editás `map-data.json`, actualizá también `map-data-embedded.js` (o
+regeneralo con el snippet de Python de más abajo) para que ambos queden sincronizados.
+
+```bash
+python3 -c "
+import json
+data = json.load(open('map-data.json'))
+js = 'const MAP_DATA_EMBEDDED = ' + json.dumps(data, ensure_ascii=False, indent=2) + ';'
+open('map-data-embedded.js', 'w', encoding='utf-8').write(js)
+"
+```
+
+Si algo falla al iniciar (dato de mapa inválido, etc.), ahora se muestra un mensaje de error en
+rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
 
 ## Controles
 
@@ -31,6 +47,8 @@ También funciona tal cual desplegado en **GitHub Pages** (Settings → Pages �
   acceso, paradas de colectivo y autos estacionados. Editable sin tocar el motor.
 - `world.js` — convierte esos datos en una grilla de tiles (`ROAD`, `SIDEWALK`, `BUILDING`, `DOOR`),
   calcula posiciones en píxeles de POIs, autos y paradas.
+- `map-data-embedded.js` — copia idéntica de `map-data.json` como objeto JS, usada como fallback
+  cuando el `fetch` del JSON falla (por ejemplo al abrir el juego con doble clic sin servidor).
 - `game.js` — bucle de juego, físicas simples, colisiones, IA de peatones/policía, sistema de
   búsqueda (wanted level) y las 3 misiones.
 - `index.html` — pantalla de título + canvas.

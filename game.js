@@ -16,6 +16,8 @@ window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 let world = null;
 let mapData = null;
 
+window.addEventListener('error', (e) => showFatalError(e.error || e.message));
+
 const state = {
   player: { x: 0, y: 0, angle: 0, radius: 10, speed: 0, inVehicle: null, health: 100, punchCooldown: 0 },
   vehicles: [],
@@ -59,28 +61,63 @@ function vehicleCanBeAt(px, py) {
 }
 
 // ---------- Setup ----------
+function showFatalError(err) {
+  console.error(err);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('No se pudo iniciar el juego:', 30, 50);
+  ctx.font = '14px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(String(err && err.message ? err.message : err), 30, 80);
+  ctx.fillStyle = '#aaa';
+  ctx.fillText('Revisá la consola del navegador (F12) para más detalle.', 30, 110);
+}
+
+// Intenta cargar map-data.json por fetch (sirve en servidor HTTP / GitHub Pages).
+// Si falla (por ejemplo abriendo index.html directo con doble clic, protocolo file://,
+// donde el navegador bloquea fetch por CORS), usa la copia embebida en map-data-embedded.js
+// para que el juego funcione igual sin depender de un servidor.
+async function loadMapData() {
+  try {
+    const res = await fetch('map-data.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch (err) {
+    console.warn('No se pudo hacer fetch de map-data.json (¿abierto con file://?). Uso la copia embebida.', err);
+    if (typeof MAP_DATA_EMBEDDED === 'undefined') {
+      throw new Error('No hay datos de mapa disponibles (falló fetch y no está map-data-embedded.js).');
+    }
+    return MAP_DATA_EMBEDDED;
+  }
+}
+
 async function init() {
-  const res = await fetch('map-data.json');
-  mapData = await res.json();
-  world = buildWorld(mapData);
+  try {
+    mapData = await loadMapData();
+    world = buildWorld(mapData);
 
-  state.player.x = world.spawn.x;
-  state.player.y = world.spawn.y;
+    state.player.x = world.spawn.x;
+    state.player.y = world.spawn.y;
 
-  state.vehicles = world.parkedCars.map(c => ({
-    ...c, driver: null, speed: 0, stolen: false,
-  }));
+    state.vehicles = world.parkedCars.map(c => ({
+      ...c, driver: null, speed: 0, stolen: false,
+    }));
 
-  for (let i = 0; i < mapData.pedestrianSpawnCount; i++) spawnPedestrian();
+    for (let i = 0; i < mapData.pedestrianSpawnCount; i++) spawnPedestrian();
 
-  state.mission = {
-    id: 'm1',
-    text: `Misión 1: Robá el auto estacionado frente a "Autopartes Los Hermanos P&G".`,
-    timer: null,
-    active: true,
-  };
+    state.mission = {
+      id: 'm1',
+      text: `Misión 1: Robá el auto estacionado frente a "Autopartes Los Hermanos P&G".`,
+      timer: null,
+      active: true,
+    };
 
-  requestAnimationFrame(loop);
+    requestAnimationFrame(loop);
+  } catch (err) {
+    showFatalError(err);
+  }
 }
 
 function spawnPedestrian() {
