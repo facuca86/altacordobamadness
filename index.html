@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alta Córdoba Madness</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #000; }
+  canvas { display: block; image-rendering: pixelated; }
+  #title-screen {
+    position: fixed; inset: 0; background: #0a0a0a; color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Arial Black', sans-serif; z-index: 10;
+  }
+  #title-screen h1 { font-size: 3.2rem; letter-spacing: 3px; color: #e9c74b; text-shadow: 3px 3px 0 #a13a3a; margin-bottom: 0; }
+  #title-screen p { font-family: sans-serif; color: #ccc; max-width: 480px; text-align: center; line-height: 1.5; }
+  #title-screen button {
+    margin-top: 24px; padding: 14px 36px; font-size: 1.1rem; background: #a13a3a; color: #fff;
+    border: none; border-radius: 4px; cursor: pointer; font-family: sans-serif;
+  }
+  #title-screen button:hover { background: #c94b4b; }
+</style>
+</head>
+<body>
+<div id="title-screen">
+  <h1>ALTA CÓRDOBA MADNESS</h1>
+  <p>Barrio Alta Córdoba recreado a partir de su traza real de calles (Jujuy, Sucre, Tucumán, Gral. Paz,
+     Av. Juan B. Justo, Lucero, Sarachaga, Balmes, Baigorri, del Viso). Robá autos, generá caos, escapate
+     de la policía y cumplí las misiones en los POIs reales del barrio.</p>
+  <button onclick="document.getElementById('title-screen').style.display='none'">JUGAR</button>
+</div>
+<canvas id="game"></canvas>
+<script src="world.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
