@@ -373,6 +373,53 @@ function update(dt) {
 // ---------- Render ----------
 function worldToScreen(x, y) { return { x: x - state.camera.x + canvas.width / 2, y: y - state.camera.y + canvas.height / 2 }; }
 
+// Carteles de calle: se repiten cada `spacing` px a lo largo de la calle,
+// solo mientras esa parte de la calle está dentro de la cámara.
+function renderStreetLabels() {
+  const viewLeft = state.camera.x - canvas.width / 2;
+  const viewRight = state.camera.x + canvas.width / 2;
+  const viewTop = state.camera.y - canvas.height / 2;
+  const viewBottom = state.camera.y + canvas.height / 2;
+  const spacing = 500;
+
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+  ctx.lineWidth = 3;
+  ctx.textAlign = 'center';
+
+  for (const s of world.streetLabels) {
+    if (s.axis === 'vertical') {
+      if (s.centerPx < viewLeft - 20 || s.centerPx > viewRight + 20) continue;
+      const sx = worldToScreen(s.centerPx, 0).x;
+      const start = Math.max(viewTop, s.from);
+      const end = Math.min(viewBottom, s.to);
+      for (let y = Math.floor(start / spacing) * spacing; y < end; y += spacing) {
+        if (y < s.from || y > s.to) continue;
+        const sy = worldToScreen(0, y).y;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(-Math.PI / 2);
+        ctx.strokeText(s.name, 0, 0);
+        ctx.fillText(s.name, 0, 0);
+        ctx.restore();
+      }
+    } else {
+      if (s.centerPx < viewTop - 20 || s.centerPx > viewBottom + 20) continue;
+      const sy = worldToScreen(0, s.centerPx).y;
+      const start = Math.max(viewLeft, s.from);
+      const end = Math.min(viewRight, s.to);
+      for (let x = Math.floor(start / spacing) * spacing; x < end; x += spacing) {
+        if (x < s.from || x > s.to) continue;
+        const sx = worldToScreen(x, 0).x;
+        ctx.strokeText(s.name, sx, sy);
+        ctx.fillText(s.name, sx, sy);
+      }
+    }
+  }
+  ctx.textAlign = 'left';
+}
+
 function render() {
   ctx.fillStyle = '#1a1a1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -402,6 +449,8 @@ function render() {
   ctx.strokeStyle = 'rgba(255,255,0,0.25)';
   ctx.setLineDash([10, 10]);
   ctx.lineWidth = 2;
+
+  renderStreetLabels();
 
   // POI labels
   ctx.font = '13px sans-serif';

@@ -78,6 +78,9 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
   2. Escapar y refugiarse cerca de Makario.
   3. Buscar el pedido en Miski Mikuy y entregarlo en FILÉ antes de que termine el timer (90s).
 - HUD con estrellas, texto de misión, timer y toasts de eventos.
+- Carteles de nombre de calle, repetidos a lo largo de cada calle mientras está en cámara
+  (rotados 90° en las verticales), generados automáticamente desde `map-data.json`
+  (`world.streetLabels` en `world.js`).
 
 ## Pendiente / simplificado (a propósito, para mantener el prototipo jugable)
 

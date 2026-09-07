@@ -121,12 +121,36 @@ function buildWorld(mapData) {
 
   const spawn = poiWorld.find(p => p.isPlayerSpawn) || { x: (cols / 2) * tileSize, y: (rows / 2) * tileSize };
 
+  // Carteles de calle: cada calle es una banda que atraviesa todo el mapa en su eje.
+  // Guardamos su nombre, eje, la línea central en px, y el rango [desde,hasta] en px
+  // que cubre (para saber dónde dibujar el cartel repetido).
+  const streetLabels = [];
+  for (const b of colAxis.bands) {
+    if (b.type !== 'street') continue;
+    streetLabels.push({
+      name: mapData.verticalStreets[b.index].name,
+      axis: 'vertical',
+      centerPx: (b.start + b.width / 2) * tileSize,
+      from: 0, to: rows * tileSize,
+    });
+  }
+  for (const b of rowAxis.bands) {
+    if (b.type !== 'street') continue;
+    streetLabels.push({
+      name: mapData.horizontalStreets[b.index].name,
+      axis: 'horizontal',
+      centerPx: (b.start + b.width / 2) * tileSize,
+      from: 0, to: cols * tileSize,
+    });
+  }
+
   return {
     tileSize, cols, rows, grid,
     pois: poiWorld,
     parkedCars: parkedCarsWorld,
     busStops: busStopsWorld,
     sidewalkTiles,
+    streetLabels,
     spawn: { x: spawn.x, y: spawn.y },
     pixelWidth: cols * tileSize,
     pixelHeight: rows * tileSize,
