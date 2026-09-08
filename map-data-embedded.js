@@ -19,11 +19,23 @@ const MAP_DATA_EMBEDDED = {
       "widthTiles": 4
     },
     {
+      "name": "Rivera Indarte",
+      "widthTiles": 2
+    },
+    {
       "name": "Av. Juan B. Justo",
       "widthTiles": 4
     }
   ],
   "horizontalStreets": [
+    {
+      "name": "Emilio Castelar",
+      "widthTiles": 2
+    },
+    {
+      "name": "Miguel de Cervantes",
+      "widthTiles": 2
+    },
     {
       "name": "Dr. Manuel Lucero",
       "widthTiles": 2
@@ -49,31 +61,36 @@ const MAP_DATA_EMBEDDED = {
       "widthTiles": 2
     }
   ],
-  "_comment_grid": "5 calles verticales -> 4 columnas de manzanas (col 0..3). 6 calles horizontales -> 5 filas de manzanas (row 0..4). col 3 = manzanas pegadas a Gral. Paz.",
+  "_comment_grid": "6 calles verticales -> 5 columnas de manzana (col 0..4). 8 calles horizontales -> 7 filas de manzana (row 0..6). col 3 = manzana entre Gral. Paz y Rivera Indarte (ahí está la Casa). col 4 = entre Rivera Indarte y Juan B. Justo.",
+  "eastZone": {
+    "_comment": "'Codito' real: a partir de Gral. Paz (índice 3 en verticalStreets), toda la trama de calles horizontales se corre hacia el sur. Confirmado por el usuario que afecta a Castelar, Cervantes, Lucero y Sarachaga (y por diseño, a todas). rowOffsetTiles es aproximado (media manzana) — ajustar si tenés la medida real.",
+    "splitAtVerticalStreetIndex": 3,
+    "rowOffsetTiles": 8
+  },
   "pois": [
     {
       "id": "casa",
       "name": "Casa",
       "type": "spawn",
       "col": 3,
-      "row": 0,
-      "side": "south",
+      "row": 2,
+      "side": "north",
       "isPlayerSpawn": true
     },
     {
       "id": "la_rueda",
       "name": "La Rueda",
       "type": "restaurant",
-      "col": 3,
+      "col": 4,
       "row": 0,
-      "side": "north"
+      "side": "east"
     },
     {
       "id": "autopartes",
       "name": "Autopartes Los Hermanos P&G",
       "type": "shop",
       "col": 3,
-      "row": 1,
+      "row": 3,
       "side": "north"
     },
     {
@@ -81,15 +98,15 @@ const MAP_DATA_EMBEDDED = {
       "name": "Makario",
       "type": "bar",
       "col": 0,
-      "row": 2,
-      "side": "east"
+      "row": 4,
+      "side": "west"
     },
     {
       "id": "file",
       "name": "FILÉ – Lomos & Wraps",
       "type": "restaurant",
       "col": 1,
-      "row": 3,
+      "row": 5,
       "side": "south"
     },
     {
@@ -97,17 +114,11 @@ const MAP_DATA_EMBEDDED = {
       "name": "Miski Mikuy - Sabor a Perú",
       "type": "restaurant",
       "col": 2,
-      "row": 4,
+      "row": 6,
       "side": "south"
     }
   ],
-  "_comment_busstops": "col máximo válido es 3 (5 calles verticales -> 4 columnas de manzana, índice 0..3); las paradas 'sobre Av. Juan B. Justo' usan la columna 3, que es la manzana pegada a esa avenida por el lado este.",
   "busStops": [
-    {
-      "col": 3,
-      "row": 1,
-      "street": "Gral. Paz"
-    },
     {
       "col": 3,
       "row": 3,
@@ -115,12 +126,17 @@ const MAP_DATA_EMBEDDED = {
     },
     {
       "col": 3,
-      "row": 2,
+      "row": 5,
+      "street": "Gral. Paz"
+    },
+    {
+      "col": 4,
+      "row": 4,
       "street": "Av. Juan B. Justo"
     },
     {
-      "col": 3,
-      "row": 4,
+      "col": 4,
+      "row": 6,
       "street": "Av. Juan B. Justo"
     }
   ],
@@ -128,7 +144,7 @@ const MAP_DATA_EMBEDDED = {
     {
       "id": "car_autopartes",
       "col": 3,
-      "row": 1,
+      "row": 3,
       "side": "north",
       "color": "#c94b4b",
       "missionCar": true
@@ -136,28 +152,28 @@ const MAP_DATA_EMBEDDED = {
     {
       "id": "car_1",
       "col": 0,
-      "row": 0,
+      "row": 2,
       "side": "west",
       "color": "#4b7dc9"
     },
     {
       "id": "car_2",
       "col": 1,
-      "row": 2,
+      "row": 4,
       "side": "south",
       "color": "#4bc98a"
     },
     {
       "id": "car_3",
       "col": 2,
-      "row": 3,
+      "row": 5,
       "side": "east",
       "color": "#c9a54b"
     },
     {
       "id": "car_4",
       "col": 3,
-      "row": 3,
+      "row": 5,
       "side": "north",
       "color": "#8a4bc9"
     }

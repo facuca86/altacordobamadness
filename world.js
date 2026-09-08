@@ -25,23 +25,48 @@ function buildAxis(streets, blockSizeTiles) {
   return { bands, totalTiles: cursor };
 }
 
+// Desplaza una copia de un eje ya construido (mismas calles/manzanas, todo corrido "offsetTiles" hacia abajo).
+function shiftAxis(axis, offsetTiles) {
+  return {
+    bands: axis.bands.map(b => ({ ...b, start: b.start + offsetTiles })),
+    totalTiles: axis.totalTiles + offsetTiles,
+  };
+}
+
 function buildWorld(mapData) {
   const tileSize = mapData.tileSize;
   const colAxis = buildAxis(mapData.verticalStreets, mapData.blockSizeTiles);
-  const rowAxis = buildAxis(mapData.horizontalStreets, mapData.blockSizeTiles);
+  const rowAxisWest = buildAxis(mapData.horizontalStreets, mapData.blockSizeTiles);
+
+  // "codito": a partir de cierta calle vertical (ej. Gral. Paz), TODAS las calles horizontales
+  // se desfasan hacia el sur en bloque (así es como se ve en la realidad: no es una calle
+  // sola la que se corta, es toda la trama de manzanas la que arranca más abajo del otro lado).
+  const eastZone = mapData.eastZone || { splitAtVerticalStreetIndex: -1, rowOffsetTiles: 0 };
+  const rowOffset = eastZone.rowOffsetTiles || 0;
+  const rowAxisEast = shiftAxis(rowAxisWest, rowOffset);
 
   const cols = colAxis.totalTiles;
-  const rows = rowAxis.totalTiles;
+  const rows = Math.max(rowAxisWest.totalTiles, rowAxisEast.totalTiles);
 
   // grilla por defecto: ROAD en todos lados, después "pintamos" las manzanas encima
   const grid = new Array(rows);
   for (let y = 0; y < rows; y++) grid[y] = new Array(cols).fill(TILE.ROAD);
 
   const colBlocks = colAxis.bands.filter(b => b.type === 'block'); // index = col de manzana
-  const rowBlocks = rowAxis.bands.filter(b => b.type === 'block'); // index = row de manzana
+
+  // Cada columna de manzanas usa el eje de filas oeste o este según de qué lado
+  // del "codito" está (colBlockIndex >= splitAtVerticalStreetIndex => zona este/desfasada).
+  function rowAxisForCol(colBlockIndex) {
+    return (colBlockIndex >= eastZone.splitAtVerticalStreetIndex) ? rowAxisEast : rowAxisWest;
+  }
+  function rowBlocksForCol(colBlockIndex) {
+    return rowAxisForCol(colBlockIndex).bands.filter(b => b.type === 'block');
+  }
 
   // Pintar cada manzana: anillo de vereda (1 tile) + interior BUILDING sólido
-  for (const cb of colBlocks) {
+  for (let j = 0; j < colBlocks.length; j++) {
+    const cb = colBlocks[j];
+    const rowBlocks = rowBlocksForCol(j);
     for (const rb of rowBlocks) {
       for (let x = cb.start; x < cb.start + cb.width; x++) {
         for (let y = rb.start; y < rb.start + rb.width; y++) {
@@ -55,7 +80,8 @@ function buildWorld(mapData) {
 
   // Helper: centro en px de una manzana (col,row) de manzana
   function blockCenterPx(col, row) {
-    const cb = colBlocks[col], rb = rowBlocks[row];
+    const cb = colBlocks[col];
+    const rb = rowBlocksForCol(col)[row];
     return {
       x: (cb.start + cb.width / 2) * tileSize,
       y: (rb.start + rb.width / 2) * tileSize,
@@ -64,7 +90,8 @@ function buildWorld(mapData) {
 
   // Helper: posición de puerta sobre un lado de la manzana (col,row)
   function doorTile(col, row, side) {
-    const cb = colBlocks[col], rb = rowBlocks[row];
+    const cb = colBlocks[col];
+    const rb = rowBlocksForCol(col)[row];
     let tx, ty;
     if (side === 'north') { tx = cb.start + Math.floor(cb.width / 2); ty = rb.start; }
     else if (side === 'south') { tx = cb.start + Math.floor(cb.width / 2); ty = rb.start + rb.width - 1; }
@@ -121,9 +148,10 @@ function buildWorld(mapData) {
 
   const spawn = poiWorld.find(p => p.isPlayerSpawn) || { x: (cols / 2) * tileSize, y: (rows / 2) * tileSize };
 
-  // Carteles de calle: cada calle es una banda que atraviesa todo el mapa en su eje.
-  // Guardamos su nombre, eje, la línea central en px, y el rango [desde,hasta] en px
-  // que cubre (para saber dónde dibujar el cartel repetido).
+  // Carteles de calle. Las verticales son una sola banda recta (no se desfasan).
+  // Las horizontales SÍ tienen "codito": van a una altura hasta la calle del split
+  // (Gral. Paz) y después continúan más abajo — por eso cada calle horizontal genera
+  // DOS carteles (tramo oeste y tramo este), en vez de uno solo.
   const streetLabels = [];
   for (const b of colAxis.bands) {
     if (b.type !== 'street') continue;
@@ -134,14 +162,25 @@ function buildWorld(mapData) {
       from: 0, to: rows * tileSize,
     });
   }
-  for (const b of rowAxis.bands) {
+  const splitStreetBand = colAxis.bands.find(b => b.type === 'street' && b.index === eastZone.splitAtVerticalStreetIndex);
+  const splitXPx = splitStreetBand ? splitStreetBand.start * tileSize : cols * tileSize;
+  for (const b of rowAxisWest.bands) {
     if (b.type !== 'street') continue;
+    const westBand = b;
+    const eastBand = rowAxisEast.bands.find(eb => eb.type === 'street' && eb.index === b.index);
+    const name = mapData.horizontalStreets[b.index].name;
     streetLabels.push({
-      name: mapData.horizontalStreets[b.index].name,
-      axis: 'horizontal',
-      centerPx: (b.start + b.width / 2) * tileSize,
-      from: 0, to: cols * tileSize,
+      name, axis: 'horizontal',
+      centerPx: (westBand.start + westBand.width / 2) * tileSize,
+      from: 0, to: splitXPx,
     });
+    if (rowOffset !== 0) {
+      streetLabels.push({
+        name, axis: 'horizontal',
+        centerPx: (eastBand.start + eastBand.width / 2) * tileSize,
+        from: splitXPx, to: cols * tileSize,
+      });
+    }
   }
 
   return {

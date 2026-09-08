@@ -61,7 +61,20 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
 - **Manzanas**: 16x16 tiles de 32px (≈ escala reducida respecto a los 100x100m reales, para que
   el prototipo sea ágil). `blockSizeTiles` es configurable en `map-data.json`.
 - **Calles**: Gral. Paz y Av. Juan B. Justo tienen 4 tiles de ancho; las internas (Jujuy, Sucre,
-  Tucumán, Sarachaga, Balmes, Baigorri, del Viso, Padre F.) tienen 2.
+  Tucumán, Rivera Indarte, Sarachaga, Balmes, Baigorri, del Viso, Padre F., Cervantes, Castelar)
+  tienen 2.
+- **"Codito" en Gral. Paz** (`eastZone` en `map-data.json`): en la realidad, las calles
+  horizontales (Castelar, Cervantes, Lucero, Sarachaga, etc.) no cruzan Gral. Paz en línea
+  recta — toda la trama de manzanas al este de Gral. Paz arranca desfasada hacia el sur. Esto
+  se modela con dos ejes de filas (`rowAxisWest` / `rowAxisEast` en `world.js`): las columnas de
+  manzana con índice ≥ `eastZone.splitAtVerticalStreetIndex` usan el eje corrido
+  `eastZone.rowOffsetTiles` tiles hacia abajo. Gral. Paz, al ser una banda de calle continua de
+  punta a punta, actúa como el "codo" de conexión entre ambos tramos sin necesitar tiles
+  especiales. El valor de `rowOffsetTiles` es aproximado — ajustalo si tenés la medida real.
+  Limitación conocida: las columnas al oeste de Gral. Paz no llegan hasta el borde sur del mapa
+  (que ahora es más alto por el desfasaje del lado este), así que esa franja queda como calle
+  "vacía" en el borde inferior de las columnas oeste — no afecta la jugabilidad cerca del barrio
+  real, pero es visualmente un poco raro si explorás muy al sur por el lado oeste.
 
 ## Mecánicas implementadas
 
@@ -80,7 +93,11 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
 - HUD con estrellas, texto de misión, timer y toasts de eventos.
 - Carteles de nombre de calle, repetidos a lo largo de cada calle mientras está en cámara
   (rotados 90° en las verticales), generados automáticamente desde `map-data.json`
-  (`world.streetLabels` en `world.js`).
+  (`world.streetLabels` en `world.js`). Las calles horizontales muestran dos tramos (oeste/este)
+  por el codito en Gral. Paz.
+- Traza corregida contra Google Maps real: Rivera Indarte, Miguel de Cervantes y Emilio Castelar
+  (límite norte real del barrio) agregadas; Casa reubicada con la puerta hacia Manuel Lucero;
+  La Rueda movida a la esquina Castelar/Juan B. Justo; bug de puerta de Makario corregido.
 
 ## Pendiente / simplificado (a propósito, para mantener el prototipo jugable)
 
