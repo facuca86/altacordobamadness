@@ -55,9 +55,10 @@ function buildWorld(mapData) {
   const colBlocks = colAxis.bands.filter(b => b.type === 'block'); // index = col de manzana
 
   // Cada columna de manzanas usa el eje de filas oeste o este según de qué lado
-  // del "codito" está (colBlockIndex >= splitAtVerticalStreetIndex => zona este/desfasada).
+  // del "codito" está. El lado OESTE de la calle de corte (Gral. Paz) es el que
+  // queda desfasado hacia el sur; el lado ESTE (donde está la Casa) usa el eje base.
   function rowAxisForCol(colBlockIndex) {
-    return (colBlockIndex >= eastZone.splitAtVerticalStreetIndex) ? rowAxisEast : rowAxisWest;
+    return (colBlockIndex < eastZone.splitAtVerticalStreetIndex) ? rowAxisEast : rowAxisWest;
   }
   function rowBlocksForCol(colBlockIndex) {
     return rowAxisForCol(colBlockIndex).bands.filter(b => b.type === 'block');
@@ -164,20 +165,22 @@ function buildWorld(mapData) {
   }
   const splitStreetBand = colAxis.bands.find(b => b.type === 'street' && b.index === eastZone.splitAtVerticalStreetIndex);
   const splitXPx = splitStreetBand ? splitStreetBand.start * tileSize : cols * tileSize;
+  // El lado oeste (x < splitXPx) usa el eje CORRIDO (más al sur); el lado este (x >= splitXPx,
+  // donde está la Casa) usa el eje BASE — misma regla que rowAxisForCol().
   for (const b of rowAxisWest.bands) {
     if (b.type !== 'street') continue;
-    const westBand = b;
-    const eastBand = rowAxisEast.bands.find(eb => eb.type === 'street' && eb.index === b.index);
+    const baseBand = b;
+    const shiftedBand = rowAxisEast.bands.find(eb => eb.type === 'street' && eb.index === b.index);
     const name = mapData.horizontalStreets[b.index].name;
     streetLabels.push({
       name, axis: 'horizontal',
-      centerPx: (westBand.start + westBand.width / 2) * tileSize,
+      centerPx: (shiftedBand.start + shiftedBand.width / 2) * tileSize,
       from: 0, to: splitXPx,
     });
     if (rowOffset !== 0) {
       streetLabels.push({
         name, axis: 'horizontal',
-        centerPx: (eastBand.start + eastBand.width / 2) * tileSize,
+        centerPx: (baseBand.start + baseBand.width / 2) * tileSize,
         from: splitXPx, to: cols * tileSize,
       });
     }
