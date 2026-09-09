@@ -61,8 +61,7 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
 - **Manzanas**: 16x16 tiles de 32px (≈ escala reducida respecto a los 100x100m reales, para que
   el prototipo sea ágil). `blockSizeTiles` es configurable en `map-data.json`.
 - **Calles**: Gral. Paz y Av. Juan B. Justo tienen 4 tiles de ancho; las internas (Jujuy, Sucre,
-  Tucumán, Rivera Indarte, Sarachaga, Balmes, Baigorri, del Viso, Padre F., Cervantes, Castelar)
-  tienen 2.
+  Tucumán, Rivera Indarte, Sarachaga, Balmes, Baigorri, del Viso, Cervantes, Castelar) tienen 2.
 - **"Codito" en Gral. Paz** (`eastZone` en `map-data.json`): en la realidad, las calles
   horizontales (Castelar, Cervantes, Lucero, Sarachaga, etc.) no cruzan Gral. Paz en línea
   recta — toda la trama de manzanas al este de Gral. Paz arranca desfasada hacia el sur. Esto
@@ -98,6 +97,13 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
 - Traza corregida contra Google Maps real: Rivera Indarte, Miguel de Cervantes y Emilio Castelar
   (límite norte real del barrio) agregadas; Casa reubicada con la puerta hacia Manuel Lucero;
   La Rueda movida a la esquina Castelar/Juan B. Justo; bug de puerta de Makario corregido.
+  Padre F. sacada (cae fuera del área real, al este de Juan B. Justo); el límite sur real es
+  Antonio del Viso. Reubicados Makario (Cervantes/Sucre), FILÉ (Tucumán, cerca de Baigorri) y
+  Autopartes (Juan B. Justo entre Castelar y Cervantes) según la traza real.
+- Fleco visual norte/sur (`edgeFringeTiles` en `map-data.json`): más allá del límite jugable se
+  ve una franja parcial de "más ciudad" (edificios genéricos + las calles verticales
+  continuando) en vez de cortar en seco contra un borde vacío. No es caminable (son tiles
+  sólidos), es puramente decorativo.
 
 ## Pendiente / simplificado (a propósito, para mantener el prototipo jugable)
 
@@ -109,8 +115,14 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
 - Armas de fuego (solo golpe cuerpo a cuerpo).
 - Minimapa.
 - Sonido/efectos (sin assets de audio en este prototipo).
-- Diag. Ica y "Padre F." se mantuvieron con nombre aproximado tal como llegaron incompletos en
-  la referencia original; ajustar en `map-data.json` si tenés el nombre exacto.
+- **Calles diagonales**: Isabel la Católica, José Baigorri y Antonio del Viso son diagonales en
+  la realidad. El motor solo soporta bandas rectas horizontales/verticales — Baigorri y del Viso
+  se mantienen como calles horizontales rectas (simplificación), e Isabel la Católica todavía
+  no está modelada como calle propia (los POIs cercanos a ella se ubicaron por aproximación).
+  Representar diagonales de verdad requeriría un modelo de colisión distinto al de grilla de
+  tiles — es un cambio de arquitectura más grande, no un ajuste de datos.
+- El offset de `eastZone.rowOffsetTiles` (el "codito") y de `edgeFringeTiles` (el fleco
+  norte/sur) son aproximados a ojo — ajustalos si tenés medidas reales.
 
 ## Créditos de nomenclatura
 

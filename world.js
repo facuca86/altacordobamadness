@@ -36,7 +36,15 @@ function shiftAxis(axis, offsetTiles) {
 function buildWorld(mapData) {
   const tileSize = mapData.tileSize;
   const colAxis = buildAxis(mapData.verticalStreets, mapData.blockSizeTiles);
-  const rowAxisWest = buildAxis(mapData.horizontalStreets, mapData.blockSizeTiles);
+
+  // "Fleco" visual: además del área jugable, dejamos ver una franja parcial de manzanas
+  // más allá del límite norte y del límite sur (no caminable, solo decorativa) para que
+  // el mapa no corte en seco contra un borde vacío. Se logra corriendo TODO el eje de
+  // filas hacia abajo por FRINGE tiles (deja hueco arriba) y agregando FRINGE tiles extra
+  // al final (deja hueco abajo).
+  const FRINGE = mapData.edgeFringeTiles || 0;
+  const rowAxisWestRaw = buildAxis(mapData.horizontalStreets, mapData.blockSizeTiles);
+  const rowAxisWest = shiftAxis(rowAxisWestRaw, FRINGE);
 
   // "codito": a partir de cierta calle vertical (ej. Gral. Paz), TODAS las calles horizontales
   // se desfasan hacia el sur en bloque (así es como se ve en la realidad: no es una calle
@@ -46,7 +54,7 @@ function buildWorld(mapData) {
   const rowAxisEast = shiftAxis(rowAxisWest, rowOffset);
 
   const cols = colAxis.totalTiles;
-  const rows = Math.max(rowAxisWest.totalTiles, rowAxisEast.totalTiles);
+  const rows = Math.max(rowAxisWest.totalTiles, rowAxisEast.totalTiles) + FRINGE;
 
   // grilla por defecto: ROAD en todos lados, después "pintamos" las manzanas encima
   const grid = new Array(rows);
@@ -79,6 +87,18 @@ function buildWorld(mapData) {
     }
   }
 
+  // Pintar la franja decorativa norte/sur: donde pasa una calle vertical real, seguimos
+  // mostrando calle (se ve que "sigue"); el resto lo pintamos como edificio genérico.
+  if (FRINGE > 0) {
+    const onVerticalStreet = (x) => colAxis.bands.some(b => b.type === 'street' && x >= b.start && x < b.start + b.width);
+    for (let y = 0; y < FRINGE; y++) {
+      for (let x = 0; x < cols; x++) grid[y][x] = onVerticalStreet(x) ? TILE.ROAD : TILE.BUILDING;
+    }
+    for (let y = rows - FRINGE; y < rows; y++) {
+      for (let x = 0; x < cols; x++) grid[y][x] = onVerticalStreet(x) ? TILE.ROAD : TILE.BUILDING;
+    }
+  }
+
   // Helper: centro en px de una manzana (col,row) de manzana
   function blockCenterPx(col, row) {
     const cb = colBlocks[col];
@@ -89,22 +109,26 @@ function buildWorld(mapData) {
     };
   }
 
-  // Helper: posición de puerta sobre un lado de la manzana (col,row)
-  function doorTile(col, row, side) {
+  // Helper: posición de puerta sobre un lado de la manzana (col,row). `offset` (en tiles)
+  // permite separar dos POIs que caen sobre el mismo lado de la misma manzana (ej. dos
+  // locales distintos, ambos con frente sobre la misma avenida).
+  function doorTile(col, row, side, offset = 0) {
     const cb = colBlocks[col];
     const rb = rowBlocksForCol(col)[row];
     let tx, ty;
-    if (side === 'north') { tx = cb.start + Math.floor(cb.width / 2); ty = rb.start; }
-    else if (side === 'south') { tx = cb.start + Math.floor(cb.width / 2); ty = rb.start + rb.width - 1; }
-    else if (side === 'west') { tx = cb.start; ty = rb.start + Math.floor(rb.width / 2); }
-    else { tx = cb.start + cb.width - 1; ty = rb.start + Math.floor(rb.width / 2); } // east
+    if (side === 'north') { tx = cb.start + Math.floor(cb.width / 2) + offset; ty = rb.start; }
+    else if (side === 'south') { tx = cb.start + Math.floor(cb.width / 2) + offset; ty = rb.start + rb.width - 1; }
+    else if (side === 'west') { tx = cb.start; ty = rb.start + Math.floor(rb.width / 2) + offset; }
+    else { tx = cb.start + cb.width - 1; ty = rb.start + Math.floor(rb.width / 2) + offset; } // east
+    tx = Math.max(cb.start + 1, Math.min(cb.start + cb.width - 2, tx));
+    ty = Math.max(rb.start + 1, Math.min(rb.start + rb.width - 2, ty));
     return { tx, ty };
   }
 
   // Carve doors for POIs
   const poiWorld = [];
   for (const poi of mapData.pois) {
-    const { tx, ty } = doorTile(poi.col, poi.row, poi.side);
+    const { tx, ty } = doorTile(poi.col, poi.row, poi.side, poi.offset || 0);
     grid[ty][tx] = TILE.DOOR;
     poiWorld.push({
       ...poi,
@@ -116,7 +140,7 @@ function buildWorld(mapData) {
   // Parked cars: colocarlos en la banda de calle adyacente al lado indicado de la manzana
   const parkedCarsWorld = [];
   for (const pc of mapData.parkedCars) {
-    const { tx, ty } = doorTile(pc.col, pc.row, pc.side);
+    const { tx, ty } = doorTile(pc.col, pc.row, pc.side, pc.offset || 0);
     // empujar el auto un par de tiles hacia la calle (fuera de la vereda)
     let cx = tx, cy = ty;
     if (pc.side === 'north') cy -= 2;
