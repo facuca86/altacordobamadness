@@ -90,20 +90,23 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
   2. Escapar y refugiarse cerca de Makario.
   3. Buscar el pedido en Miski Mikuy y entregarlo en FILÉ antes de que termine el timer (90s).
 - HUD con estrellas, texto de misión, timer y toasts de eventos.
-- Carteles de nombre de calle, repetidos a lo largo de cada calle mientras está en cámara
-  (rotados 90° en las verticales), generados automáticamente desde `map-data.json`
-  (`world.streetLabels` en `world.js`). Las calles horizontales muestran dos tramos (oeste/este)
-  por el codito en Gral. Paz.
+- **Calles diagonales reales** (`diagonalStreets` en `map-data.json`): Antonio del Viso e Isabel
+  la Católica se pintan como segmentos de línea a cualquier ángulo directamente sobre la grilla
+  de tiles (`paintDiagonalStreet()` en `world.js`, por distancia punto-segmento), comiéndose
+  manzanas a su paso como en la realidad — sin necesitar un motor de colisión por polígonos.
+  Antonio del Viso es una diagonal leve (límite sur real); Isabel la Católica tiene un ángulo
+  más fuerte y termina fundiéndose con José Baigorri, que ahora es el límite sur de la grilla
+  ortogonal.
+- **Fleco norte/sur con geometría real**: en vez de un relleno genérico, se pinta una manzana
+  más (misma vereda + interior que las reales) cortada por el borde del mundo — se ve angosta
+  y prolija, no un vacío ancho.
+- **POIs en esquina real** (`side: "corner-ne"|"corner-nw"|"corner-se"|"corner-sw"`): ubica el
+  POI en el tile exacto de la esquina de la manzana, no en el medio de un lado. La Rueda usa
+  este modo (esquina Castelar/Juan B. Justo).
 - Traza corregida contra Google Maps real: Rivera Indarte, Miguel de Cervantes y Emilio Castelar
-  (límite norte real del barrio) agregadas; Casa reubicada con la puerta hacia Manuel Lucero;
-  La Rueda movida a la esquina Castelar/Juan B. Justo; bug de puerta de Makario corregido.
-  Padre F. sacada (cae fuera del área real, al este de Juan B. Justo); el límite sur real es
-  Antonio del Viso. Reubicados Makario (Cervantes/Sucre), FILÉ (Tucumán, cerca de Baigorri) y
-  Autopartes (Juan B. Justo entre Castelar y Cervantes) según la traza real.
-- Fleco visual norte/sur (`edgeFringeTiles` en `map-data.json`): más allá del límite jugable se
-  ve una franja parcial de "más ciudad" (edificios genéricos + las calles verticales
-  continuando) en vez de cortar en seco contra un borde vacío. No es caminable (son tiles
-  sólidos), es puramente decorativo.
+  (límite norte real) agregadas; Casa reubicada con la puerta hacia Manuel Lucero; Makario
+  reubicado a Cervantes/Sucre; FILÉ a Tucumán cerca de Baigorri; Autopartes a Juan B. Justo
+  entre Castelar y Cervantes.
 
 ## Pendiente / simplificado (a propósito, para mantener el prototipo jugable)
 
@@ -115,14 +118,13 @@ rojo sobre el canvas en vez de quedar la pantalla negra sin ninguna indicación.
 - Armas de fuego (solo golpe cuerpo a cuerpo).
 - Minimapa.
 - Sonido/efectos (sin assets de audio en este prototipo).
-- **Calles diagonales**: Isabel la Católica, José Baigorri y Antonio del Viso son diagonales en
-  la realidad. El motor solo soporta bandas rectas horizontales/verticales — Baigorri y del Viso
-  se mantienen como calles horizontales rectas (simplificación), e Isabel la Católica todavía
-  no está modelada como calle propia (los POIs cercanos a ella se ubicaron por aproximación).
-  Representar diagonales de verdad requeriría un modelo de colisión distinto al de grilla de
-  tiles — es un cambio de arquitectura más grande, no un ajuste de datos.
-- El offset de `eastZone.rowOffsetTiles` (el "codito") y de `edgeFringeTiles` (el fleco
-  norte/sur) son aproximados a ojo — ajustalos si tenés medidas reales.
+- **Rotación global de la grilla**: la trama ortogonal principal se ve levemente rotada en
+  Google Maps real (no es exactamente N-S/E-O). El motor no aplica esa rotación todavía —
+  las diagonales sí están resueltas (ver arriba), pero la grilla en sí queda "derecha".
+  Se podría agregar con una única matriz de rotación al dibujar, sin tocar la lógica interna.
+- Las coordenadas de `diagonalStreets` (`x1,y1,x2,y2`, en tiles) y los offsets de
+  `eastZone.rowOffsetTiles` / `edgeFringeTiles` están puestos a ojo, anclados a las calles
+  ortogonales reales — ajustalos si tenés medidas más precisas.
 
 ## Créditos de nomenclatura
 

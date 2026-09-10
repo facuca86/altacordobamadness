@@ -52,19 +52,34 @@ const MAP_DATA_EMBEDDED = {
     {
       "name": "José Baigorri",
       "widthTiles": 2
-    },
-    {
-      "name": "Antonio del Viso",
-      "widthTiles": 2
     }
   ],
-  "_comment_grid": "6 calles verticales -> 5 columnas de manzana (col 0..4). 7 calles horizontales -> 6 filas de manzana (row 0..5). Antonio del Viso es el límite sur real (se sacó 'Padre F.', que en realidad cae al este de Juan B. Justo y fuera del área mapeada).",
-  "_comment_diagonales": "Isabel la Católica, José Baigorri y Antonio del Viso son diagonales en la realidad (no calles perpendiculares rectas). El motor actual no soporta calles diagonales -- se mantienen como bandas horizontales rectas, una simplificación deliberada. Isabel la Católica ni siquiera está modelada como calle propia todavía.",
+  "_comment_grid": "6 verticales -> 5 columnas de manzana (col 0..4). 6 horizontales -> 5 filas (row 0..4). Baigorri es ahora el límite sur de la grilla ORTOGONAL; Antonio del Viso e Isabel la Católica son diagonales (ver diagonalStreets), no bandas rectas.",
   "eastZone": {
-    "_comment": "'Codito' real en Gral. Paz (índice 3 en verticalStreets): el lado OESTE de Gral. Paz queda desfasado hacia el sur respecto del lado ESTE (donde está la Casa). rowOffsetTiles es aproximado.",
+    "_comment": "'Codito' real en Gral. Paz (índice 3 en verticalStreets): el lado OESTE de Gral. Paz queda desfasado hacia el sur respecto del lado ESTE (donde está la Casa).",
     "splitAtVerticalStreetIndex": 3,
     "rowOffsetTiles": 8
   },
+  "diagonalStreets": [
+    {
+      "name": "Antonio del Viso",
+      "widthTiles": 3,
+      "x1": 0,
+      "y1": 113,
+      "x2": 96,
+      "y2": 107,
+      "_comment": "diagonal leve, pasa un poco al sur de Baigorri en ambos extremos"
+    },
+    {
+      "name": "Isabel la Católica",
+      "widthTiles": 3,
+      "x1": 0,
+      "y1": 64,
+      "x2": 60,
+      "y2": 102,
+      "_comment": "diagonal fuerte, arranca cerca de Sarachaga (oeste) y termina fundiéndose con Baigorri cerca de Gral. Paz"
+    }
+  ],
   "pois": [
     {
       "id": "casa",
@@ -81,8 +96,7 @@ const MAP_DATA_EMBEDDED = {
       "type": "restaurant",
       "col": 4,
       "row": 0,
-      "side": "east",
-      "offset": -4
+      "side": "corner-ne"
     },
     {
       "id": "autopartes",
@@ -90,8 +104,7 @@ const MAP_DATA_EMBEDDED = {
       "type": "shop",
       "col": 4,
       "row": 0,
-      "side": "east",
-      "offset": 4
+      "side": "east"
     },
     {
       "id": "makario",
@@ -114,11 +127,10 @@ const MAP_DATA_EMBEDDED = {
       "name": "Miski Mikuy - Sabor a Perú",
       "type": "restaurant",
       "col": 2,
-      "row": 5,
+      "row": 4,
       "side": "south"
     }
   ],
-  "_comment_pois": "Autopartes y La Rueda están en la misma manzana (Juan B. Justo entre Castelar y Cervantes), separadas con 'offset' (en tiles) a lo largo del mismo lado para no pisarse.",
   "busStops": [
     {
       "col": 3,
@@ -137,7 +149,7 @@ const MAP_DATA_EMBEDDED = {
     },
     {
       "col": 4,
-      "row": 5,
+      "row": 4,
       "street": "Av. Juan B. Justo"
     }
   ],
@@ -147,7 +159,6 @@ const MAP_DATA_EMBEDDED = {
       "col": 4,
       "row": 0,
       "side": "east",
-      "offset": 4,
       "color": "#c94b4b",
       "missionCar": true
     },
@@ -175,7 +186,7 @@ const MAP_DATA_EMBEDDED = {
     {
       "id": "car_4",
       "col": 3,
-      "row": 5,
+      "row": 4,
       "side": "north",
       "color": "#8a4bc9"
     }

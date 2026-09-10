@@ -33,22 +33,60 @@ function shiftAxis(axis, offsetTiles) {
   };
 }
 
+// Pinta una manzana (vereda + interior) en la grilla. `rb` puede extenderse fuera de los
+// límites de la grilla (arriba o abajo) -- se clampea automáticamente al pintar, así que
+// sirve tanto para manzanas reales como para el "fleco" decorativo del norte/sur (una
+// manzana más, cortada a la mitad por el borde del mundo).
+function paintBlock(grid, rows, cb, rb) {
+  const yFrom = Math.max(0, rb.start);
+  const yTo = Math.min(rows, rb.start + rb.width);
+  for (let x = cb.start; x < cb.start + cb.width; x++) {
+    for (let y = yFrom; y < yTo; y++) {
+      const onEdge = (x === cb.start || x === cb.start + cb.width - 1 ||
+                       y === rb.start || y === rb.start + rb.width - 1);
+      grid[y][x] = onEdge ? TILE.SIDEWALK : TILE.BUILDING;
+    }
+  }
+}
+
+// Pinta una calle diagonal como ROAD sobre un segmento de línea (x1,y1)-(x2,y2), en
+// coordenadas de tile, con cierto ancho. Le agrega un borde de 1 tile de SIDEWALK a los
+// costados (sin pisar ROAD existente). No respeta la grilla ortogonal -- se come manzanas
+// a su paso, que es justamente el comportamiento real de una diagonal.
+function paintDiagonalStreet(grid, cols, rows, x1, y1, x2, y2, widthTiles) {
+  const halfW = widthTiles / 2;
+  const minX = Math.max(0, Math.floor(Math.min(x1, x2) - halfW - 1));
+  const maxX = Math.min(cols - 1, Math.ceil(Math.max(x1, x2) + halfW + 1));
+  const minY = Math.max(0, Math.floor(Math.min(y1, y2) - halfW - 1));
+  const maxY = Math.min(rows - 1, Math.ceil(Math.max(y1, y2) + halfW + 1));
+  const dx = x2 - x1, dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy || 1;
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      const px = x + 0.5, py = y + 0.5;
+      let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+      t = Math.max(0, Math.min(1, t));
+      const cx = x1 + t * dx, cy = y1 + t * dy;
+      const dist = Math.hypot(px - cx, py - cy);
+      if (dist <= halfW) grid[y][x] = TILE.ROAD;
+      else if (dist <= halfW + 1 && grid[y][x] !== TILE.ROAD) grid[y][x] = TILE.SIDEWALK;
+    }
+  }
+}
+
 function buildWorld(mapData) {
   const tileSize = mapData.tileSize;
   const colAxis = buildAxis(mapData.verticalStreets, mapData.blockSizeTiles);
 
-  // "Fleco" visual: además del área jugable, dejamos ver una franja parcial de manzanas
-  // más allá del límite norte y del límite sur (no caminable, solo decorativa) para que
-  // el mapa no corte en seco contra un borde vacío. Se logra corriendo TODO el eje de
-  // filas hacia abajo por FRINGE tiles (deja hueco arriba) y agregando FRINGE tiles extra
-  // al final (deja hueco abajo).
+  // "Fleco" visual: dejamos ver una manzana más (cortada por el borde del mundo) al norte
+  // y al sur del área jugable, para que no corte en seco contra un borde vacío.
   const FRINGE = mapData.edgeFringeTiles || 0;
   const rowAxisWestRaw = buildAxis(mapData.horizontalStreets, mapData.blockSizeTiles);
   const rowAxisWest = shiftAxis(rowAxisWestRaw, FRINGE);
 
   // "codito": a partir de cierta calle vertical (ej. Gral. Paz), TODAS las calles horizontales
-  // se desfasan hacia el sur en bloque (así es como se ve en la realidad: no es una calle
-  // sola la que se corta, es toda la trama de manzanas la que arranca más abajo del otro lado).
+  // se desfasan hacia el sur en bloque. El lado OESTE de esa calle es el que queda desfasado;
+  // el lado ESTE (donde está la Casa) usa el eje base.
   const eastZone = mapData.eastZone || { splitAtVerticalStreetIndex: -1, rowOffsetTiles: 0 };
   const rowOffset = eastZone.rowOffsetTiles || 0;
   const rowAxisEast = shiftAxis(rowAxisWest, rowOffset);
@@ -62,9 +100,6 @@ function buildWorld(mapData) {
 
   const colBlocks = colAxis.bands.filter(b => b.type === 'block'); // index = col de manzana
 
-  // Cada columna de manzanas usa el eje de filas oeste o este según de qué lado
-  // del "codito" está. El lado OESTE de la calle de corte (Gral. Paz) es el que
-  // queda desfasado hacia el sur; el lado ESTE (donde está la Casa) usa el eje base.
   function rowAxisForCol(colBlockIndex) {
     return (colBlockIndex < eastZone.splitAtVerticalStreetIndex) ? rowAxisEast : rowAxisWest;
   }
@@ -72,31 +107,32 @@ function buildWorld(mapData) {
     return rowAxisForCol(colBlockIndex).bands.filter(b => b.type === 'block');
   }
 
-  // Pintar cada manzana: anillo de vereda (1 tile) + interior BUILDING sólido
+  // Pintar cada manzana real
   for (let j = 0; j < colBlocks.length; j++) {
     const cb = colBlocks[j];
-    const rowBlocks = rowBlocksForCol(j);
-    for (const rb of rowBlocks) {
-      for (let x = cb.start; x < cb.start + cb.width; x++) {
-        for (let y = rb.start; y < rb.start + rb.width; y++) {
-          const onEdge = (x === cb.start || x === cb.start + cb.width - 1 ||
-                           y === rb.start || y === rb.start + rb.width - 1);
-          grid[y][x] = onEdge ? TILE.SIDEWALK : TILE.BUILDING;
-        }
-      }
+    for (const rb of rowBlocksForCol(j)) paintBlock(grid, rows, cb, rb);
+  }
+
+  // Pintar el fleco norte/sur: una manzana más (misma geometría que las reales, vereda +
+  // interior), ubicada justo antes de la primera calle y justo después de la última, cortada
+  // por el borde del mundo -- por eso se ve "parcial" en vez de un relleno genérico.
+  if (FRINGE > 0) {
+    for (let j = 0; j < colBlocks.length; j++) {
+      const cb = colBlocks[j];
+      const axis = rowAxisForCol(j);
+      const streets = axis.bands.filter(b => b.type === 'street');
+      const firstStreet = streets[0], lastStreet = streets[streets.length - 1];
+      const northFringeBlock = { start: firstStreet.start - mapData.blockSizeTiles, width: mapData.blockSizeTiles };
+      const southFringeBlock = { start: lastStreet.start + lastStreet.width, width: mapData.blockSizeTiles };
+      paintBlock(grid, rows, cb, northFringeBlock);
+      paintBlock(grid, rows, cb, southFringeBlock);
     }
   }
 
-  // Pintar la franja decorativa norte/sur: donde pasa una calle vertical real, seguimos
-  // mostrando calle (se ve que "sigue"); el resto lo pintamos como edificio genérico.
-  if (FRINGE > 0) {
-    const onVerticalStreet = (x) => colAxis.bands.some(b => b.type === 'street' && x >= b.start && x < b.start + b.width);
-    for (let y = 0; y < FRINGE; y++) {
-      for (let x = 0; x < cols; x++) grid[y][x] = onVerticalStreet(x) ? TILE.ROAD : TILE.BUILDING;
-    }
-    for (let y = rows - FRINGE; y < rows; y++) {
-      for (let x = 0; x < cols; x++) grid[y][x] = onVerticalStreet(x) ? TILE.ROAD : TILE.BUILDING;
-    }
+  // Diagonales: se pintan por encima de todo lo anterior (calles ortogonales incluidas),
+  // en coordenadas de tile absolutas.
+  for (const d of (mapData.diagonalStreets || [])) {
+    paintDiagonalStreet(grid, cols, rows, d.x1, d.y1, d.x2, d.y2, d.widthTiles);
   }
 
   // Helper: centro en px de una manzana (col,row) de manzana
@@ -109,13 +145,20 @@ function buildWorld(mapData) {
     };
   }
 
-  // Helper: posición de puerta sobre un lado de la manzana (col,row). `offset` (en tiles)
-  // permite separar dos POIs que caen sobre el mismo lado de la misma manzana (ej. dos
-  // locales distintos, ambos con frente sobre la misma avenida).
+  // Helper: posición de puerta sobre una manzana (col,row).
+  // side: 'north'|'south'|'east'|'west' -> mitad de ese lado (+ `offset` en tiles para separar
+  //       dos locales del mismo lado). 'corner-ne'|'corner-nw'|'corner-se'|'corner-sw' -> la
+  //       esquina exacta de la manzana (para POIs que están literalmente en una esquina).
   function doorTile(col, row, side, offset = 0) {
     const cb = colBlocks[col];
     const rb = rowBlocksForCol(col)[row];
     let tx, ty;
+    if (side.startsWith('corner-')) {
+      const dir = side.slice(7);
+      tx = dir.includes('e') ? cb.start + cb.width - 1 : cb.start;
+      ty = dir.includes('n') ? rb.start : rb.start + rb.width - 1;
+      return { tx, ty };
+    }
     if (side === 'north') { tx = cb.start + Math.floor(cb.width / 2) + offset; ty = rb.start; }
     else if (side === 'south') { tx = cb.start + Math.floor(cb.width / 2) + offset; ty = rb.start + rb.width - 1; }
     else if (side === 'west') { tx = cb.start; ty = rb.start + Math.floor(rb.width / 2) + offset; }
@@ -141,7 +184,6 @@ function buildWorld(mapData) {
   const parkedCarsWorld = [];
   for (const pc of mapData.parkedCars) {
     const { tx, ty } = doorTile(pc.col, pc.row, pc.side, pc.offset || 0);
-    // empujar el auto un par de tiles hacia la calle (fuera de la vereda)
     let cx = tx, cy = ty;
     if (pc.side === 'north') cy -= 2;
     else if (pc.side === 'south') cy += 2;
@@ -173,10 +215,8 @@ function buildWorld(mapData) {
 
   const spawn = poiWorld.find(p => p.isPlayerSpawn) || { x: (cols / 2) * tileSize, y: (rows / 2) * tileSize };
 
-  // Carteles de calle. Las verticales son una sola banda recta (no se desfasan).
-  // Las horizontales SÍ tienen "codito": van a una altura hasta la calle del split
-  // (Gral. Paz) y después continúan más abajo — por eso cada calle horizontal genera
-  // DOS carteles (tramo oeste y tramo este), en vez de uno solo.
+  // Carteles de calle. Las verticales son una sola banda recta. Las horizontales tienen
+  // "codito": dos tramos (oeste/este) con distinta altura. Las diagonales se etiquetan aparte.
   const streetLabels = [];
   for (const b of colAxis.bands) {
     if (b.type !== 'street') continue;
@@ -189,8 +229,6 @@ function buildWorld(mapData) {
   }
   const splitStreetBand = colAxis.bands.find(b => b.type === 'street' && b.index === eastZone.splitAtVerticalStreetIndex);
   const splitXPx = splitStreetBand ? splitStreetBand.start * tileSize : cols * tileSize;
-  // El lado oeste (x < splitXPx) usa el eje CORRIDO (más al sur); el lado este (x >= splitXPx,
-  // donde está la Casa) usa el eje BASE — misma regla que rowAxisForCol().
   for (const b of rowAxisWest.bands) {
     if (b.type !== 'street') continue;
     const baseBand = b;
@@ -208,6 +246,12 @@ function buildWorld(mapData) {
         from: splitXPx, to: cols * tileSize,
       });
     }
+  }
+  for (const d of (mapData.diagonalStreets || [])) {
+    streetLabels.push({
+      name: d.name, axis: 'diagonal',
+      x1: d.x1 * tileSize, y1: d.y1 * tileSize, x2: d.x2 * tileSize, y2: d.y2 * tileSize,
+    });
   }
 
   return {

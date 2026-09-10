@@ -404,7 +404,7 @@ function renderStreetLabels() {
         ctx.fillText(s.name, 0, 0);
         ctx.restore();
       }
-    } else {
+    } else if (s.axis === 'horizontal') {
       if (s.centerPx < viewTop - 20 || s.centerPx > viewBottom + 20) continue;
       const sy = worldToScreen(0, s.centerPx).y;
       const start = Math.max(viewLeft, s.from);
@@ -414,6 +414,24 @@ function renderStreetLabels() {
         const sx = worldToScreen(x, 0).x;
         ctx.strokeText(s.name, sx, sy);
         ctx.fillText(s.name, sx, sy);
+      }
+    } else if (s.axis === 'diagonal') {
+      // Repetimos el cartel a lo largo del segmento (x1,y1)-(x2,y2), rotado a su ángulo real.
+      const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const angle = Math.atan2(dy, dx);
+      const steps = Math.max(1, Math.floor(len / spacing));
+      for (let i = 0; i <= steps; i++) {
+        const t = steps === 0 ? 0.5 : i / steps;
+        const wx = s.x1 + dx * t, wy = s.y1 + dy * t;
+        if (wx < viewLeft - 20 || wx > viewRight + 20 || wy < viewTop - 20 || wy > viewBottom + 20) continue;
+        const p = worldToScreen(wx, wy);
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(angle);
+        ctx.strokeText(s.name, 0, 0);
+        ctx.fillText(s.name, 0, 0);
+        ctx.restore();
       }
     }
   }
